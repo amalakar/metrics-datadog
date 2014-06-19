@@ -1,11 +1,9 @@
 package com.yammer.metrics.reporting;
 
 import java.io.IOException;
-import java.util.EnumSet;
-import java.util.Locale;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
-import java.util.SortedMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +45,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
       .getLogger(DatadogReporter.class);
   private final VirtualMachineMetrics vm;
   private final MetricNameFormatter metricNameFormatter;
+  private final List<String> tags;
 
   private static final JsonFactory jsonFactory = new JsonFactory();
   private static final ObjectMapper mapper = new ObjectMapper(jsonFactory);
@@ -55,7 +54,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
   public DatadogReporter(MetricsRegistry metricsRegistry,
       MetricPredicate predicate, VirtualMachineMetrics vm, Transport transport,
       Clock clock, String host, EnumSet<Expansions> expansions, Boolean printVmMetrics,
-      MetricNameFormatter metricNameFormatter) {
+      MetricNameFormatter metricNameFormatter, List<String> tags) {
     super(metricsRegistry, "datadog-reporter");
     this.vm = vm;
     this.transport = transport;
@@ -65,6 +64,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
     this.expansions = expansions;
     this.printVmMetrics = printVmMetrics;
     this.metricNameFormatter = metricNameFormatter;
+    this.tags = tags;
   }
 
   @Override
@@ -201,7 +201,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
   }
 
   private void pushCounter(String name, Long count, Long epoch) {
-    DatadogCounter counter = new DatadogCounter(name, count, epoch, host);
+    DatadogCounter counter = new DatadogCounter(name, count, epoch, host, this.tags);
     try {
       mapper.writeValue(jsonOut, counter);
     } catch (Exception e) {
@@ -219,7 +219,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
   }
 
   private void sendGauge(String name, Number count, Long epoch) {
-    DatadogGauge gauge = new DatadogGauge(name, count, epoch, host);
+    DatadogGauge gauge = new DatadogGauge(name, count, epoch, host, this.tags);
     try {
       mapper.writeValue(jsonOut, gauge);
     } catch (Exception e) {
@@ -266,6 +266,7 @@ public class DatadogReporter extends AbstractPollingReporter implements
     private Clock clock = Clock.defaultClock();
     private MetricPredicate predicate = MetricPredicate.ALL;
     private MetricNameFormatter metricNameFormatter = new DefaultMetricNameFormatter();
+    private List<String> tags = new ArrayList<String>();
 
     public Builder withHost(String host) {
       this.host = host;
@@ -290,6 +291,17 @@ public class DatadogReporter extends AbstractPollingReporter implements
     public Builder withApiKey(String key) {
       this.apiKey = key;
       return this;
+    }
+
+    /**
+     * Tags that would be sent to datadog with each and every metrics. This could be used to set global metrics
+     * like version of the app, environment etc.
+     * @param tags List of tags eg: [env:prod, version:1.0.1] etc
+     * @return
+     */
+    public Builder withTags(List<String> tags) {
+        this.tags = tags;
+        return this;
     }
 
     public Builder withClock(Clock clock) {
@@ -317,7 +329,8 @@ public class DatadogReporter extends AbstractPollingReporter implements
         this.host,
         this.expansions,
         this.vmMetrics,
-        metricNameFormatter);
+        metricNameFormatter,
+        this.tags);
     }
   }
 }

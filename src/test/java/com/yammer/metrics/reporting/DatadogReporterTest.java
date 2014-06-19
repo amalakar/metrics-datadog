@@ -4,10 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
@@ -34,6 +31,7 @@ public class DatadogReporterTest {
   Clock clock;
   DatadogReporter ddNoHost;
   DatadogReporter dd;
+  List<String> tags = new ArrayList<String>();
   static final MetricPredicate ALL = MetricPredicate.ALL;
 
   @Before
@@ -44,11 +42,11 @@ public class DatadogReporterTest {
     vm = VirtualMachineMetrics.getInstance();
     ddNoHost = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
         VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
-        null, DatadogReporter.Expansions.ALL, true, new DefaultMetricNameFormatter());
+        null, DatadogReporter.Expansions.ALL, true, new DefaultMetricNameFormatter(), tags);
 
     dd = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
         VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
-        "hostname", DatadogReporter.Expansions.ALL, true, new DefaultMetricNameFormatter());
+        "hostname", DatadogReporter.Expansions.ALL, true, new DefaultMetricNameFormatter(), tags);
   }
 
   @SuppressWarnings("unchecked")
@@ -120,7 +118,7 @@ public class DatadogReporterTest {
     MockTransport transport = new MockTransport();
     DatadogReporter dd = new DatadogReporter(metricsRegistry, MetricPredicate.ALL,
       VirtualMachineMetrics.getInstance(), transport, Clock.defaultClock(),
-      "hostname", EnumSet.of(expansion), false, new DefaultMetricNameFormatter());
+      "hostname", EnumSet.of(expansion), false, new DefaultMetricNameFormatter(), tags);
 
     assertEquals(0, transport.numRequests);
     dd.run();
